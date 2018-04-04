@@ -125,6 +125,7 @@ def get_models(noise_size):
     dis = _discriminator(inp_shape=(32, 32, 3))
 
     # create the combined model:
+    dis.trainable = False
     comb = Model(inputs=gen.inputs, outputs=dis(gen.outputs))
 
     # return the three created models:

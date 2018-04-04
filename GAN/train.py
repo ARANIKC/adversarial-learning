@@ -51,7 +51,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
                 axs[i, j].imshow(gen_samples[cnt])
                 axs[i, j].axis('off')
                 cnt += 1
-        fig.savefig("generated_samples/cifar-10_epoch_%d.png" % (epch+1))
+        fig.savefig("generated_samples/cifar-10_epoch_%d.png" % (epch + 1))
         plt.close()
 
     for epoch in range(epochs):
@@ -104,7 +104,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
         avg_d_loss = np.mean(d_losses)
         avg_d_acc = 100 * np.mean(d_accs)
         avg_g_loss = np.mean(g_losses)
-        print("%d [D_loss: %f, acc.: %.2f%%] [G_loss: %f]" % (epoch+1, avg_d_loss, avg_d_acc, avg_g_loss))
+        print("%d [D_loss: %f, acc.: %.2f%%] [G_loss: %f]" % (epoch + 1, avg_d_loss, avg_d_acc, avg_g_loss))
 
         # If at save interval => save generated image samples
         if epoch == 0 or (epoch + 1) % checkpoint_sample == 0:
@@ -141,11 +141,13 @@ def main(_):
     # obtain the network models
     gen, dis, combined = GAN.get_models(FLAGS.input_noise_size)
 
-    # compile the three models:
-    dis.compile(optimizer=keras.optimizers.Adam(lr=FLAGS.discriminator_lr),
-                loss='binary_crossentropy', metrics=['accuracy'])
+    # compile the models:
     combined.compile(optimizer=keras.optimizers.Nadam(lr=FLAGS.combined_lr),
                      loss='binary_crossentropy')
+
+    dis.trainable = True
+    dis.compile(optimizer=keras.optimizers.Adam(lr=FLAGS.discriminator_lr),
+                loss='binary_crossentropy', metrics=['accuracy'])
 
     train(
         models=(gen, dis, combined),
