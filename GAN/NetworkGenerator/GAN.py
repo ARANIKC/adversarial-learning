@@ -4,6 +4,7 @@
 from keras import Sequential
 from keras.layers import Conv2DTranspose, Dense, \
     Reshape, Conv2D, MaxPool2D, Flatten
+from keras.optimizers import Adam
 from keras import Model
 
 
@@ -111,7 +112,7 @@ def _discriminator(inp_shape):
     return discriminator_model
 
 
-def get_models(noise_size):
+def get_models(noise_size, dis_lr, comb_lr):
     """
     generate the GAN models
     :param noise_size: size of the input noise to the model
@@ -123,10 +124,11 @@ def get_models(noise_size):
     # obtain the discriminator model:
     # input shape is of Cifar-10 images: i.e. 32 x 32 x 3
     dis = _discriminator(inp_shape=(32, 32, 3))
+    dis.compile(optimizer=Adam(dis_lr, 0.5), loss='binary_crossentropy', metrics=['accuracy'])
 
     # create the combined model:
-    dis.trainable = False
     comb = Model(inputs=gen.inputs, outputs=dis(gen.outputs))
+    comb.compile(optimizer=Adam(comb_lr, 0.5), loss='binary_crossentropy')
 
     # return the three created models:
     return gen, dis, comb

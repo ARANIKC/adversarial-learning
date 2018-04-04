@@ -3,7 +3,6 @@
 
 import tensorflow as tf
 import numpy as np
-import keras
 import NetworkGenerator.GAN as GAN
 import matplotlib.pyplot as plt
 
@@ -57,7 +56,8 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
     for epoch in range(epochs):
         d_losses = []
         g_losses = []
-        d_accs = []
+        d_accs_r = []
+        d_accs_f = []
         num_batches = int(np.ceil(epochs / batch_size))
         for _ in range(num_batches):
             # ---------------------
@@ -68,18 +68,22 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
             idx = np.random.randint(0, data.shape[0], half_batch)
             imgs = data[idx]
 
-            noise = np.random.normal(0, 1, (half_batch, noise_size))
+            noise = np.random.normal(0, 1, (batch_size, noise_size))
 
             # Generate a half batch of new images
             gen_imgs = generator.predict(noise)
 
             # Train the discriminator
+            discriminator.trainable = True
             d_loss_real = discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
-            d_loss_fake = discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
-            d_loss, d_acc = 0.5 * np.add(d_loss_real, d_loss_fake)
+            d_loss_fake = discriminator.train_on_batch(gen_imgs, np.zeros((batch_size, 1)))
+            d_loss = 0.5 * np.add(d_loss_real[0], d_loss_fake[0])
+            d_real_acc = d_loss_real[1]
+            d_fake_acc = d_loss_fake[1]
 
             d_losses.append(d_loss)
-            d_accs.append(d_acc)
+            d_accs_r.append(d_real_acc)
+            d_accs_f.append(d_fake_acc)
 
             # ---------------------
             #  Train Generator
@@ -94,17 +98,18 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
             # Train the generator
             # make sure that during the training of the combined model, the discriminator
             # is turned off. This way, only generator is trained
-            discriminator.trainable = False
+            discriminator.Trainable = False
             g_loss = combined.train_on_batch(noise, valid_y)
-            discriminator.trainable = True
 
             g_losses.append(g_loss)
 
         # Plot the progress
         avg_d_loss = np.mean(d_losses)
-        avg_d_acc = 100 * np.mean(d_accs)
+        avg_d_acc_r = 100 * np.mean(d_accs_r)
+        avg_d_acc_f = 100 * np.mean(d_accs_f)
         avg_g_loss = np.mean(g_losses)
-        print("%d [D_loss: %f, acc.: %.2f%%] [G_loss: %f]" % (epoch + 1, avg_d_loss, avg_d_acc, avg_g_loss))
+        print("%d [D_loss: %f, Real_acc.: %.2f%%, Fake_acc.: %.2f%%] [G_loss: %f]"
+              % (epoch + 1, avg_d_loss, avg_d_acc_r, avg_d_acc_f, avg_g_loss))
 
         # If at save interval => save generated image samples
         if epoch == 0 or (epoch + 1) % checkpoint_sample == 0:
@@ -139,15 +144,15 @@ def main(_):
     print("Input_Images:", x.shape)
 
     # obtain the network models
-    gen, dis, combined = GAN.get_models(FLAGS.input_noise_size)
+    gen, dis, combined = GAN.get_models(FLAGS.input_noise_size,
+                                        FLAGS.discriminator_lr,
+                                        FLAGS.combined_lr)
+    print("Discriminator summary:")
+    dis.summary()
 
-    # compile the models:
-    combined.compile(optimizer=keras.optimizers.Nadam(lr=FLAGS.combined_lr),
-                     loss='binary_crossentropy')
-
-    dis.trainable = True
-    dis.compile(optimizer=keras.optimizers.Adam(lr=FLAGS.discriminator_lr),
-                loss='binary_crossentropy', metrics=['accuracy'])
+    dis.trainable = False
+    print("Combined Model summary:")
+    combined.summary()
 
     train(
         models=(gen, dis, combined),
@@ -167,8 +172,6 @@ if __name__ == '__main__':
     # define the optional flags for the app to run
     flags.DEFINE_integer("input_noise_size", 16,
                          "Number of dimensions of the input noise samples")
-    flags.DEFINE_float("generator_lr", 3e-3,
-                       "Learning rate for training the Generator")
     flags.DEFINE_float("discriminator_lr", 3e-3,
                        "Learning rate for training the Discriminator")
     flags.DEFINE_float("combined_lr", 3e-3,
