@@ -112,7 +112,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
         avg_g_acc = 100 * np.mean(g_accs)
         avg_g_loss = np.mean(g_losses)
         print("%d [D_loss: %f, Real_acc.: %.2f%%, Fake_acc.: %.2f%%] [G_loss: %f, G_acc.: %.2f%%]"
-              % (epoch + 1, avg_d_loss, avg_d_acc_r, avg_d_acc_f, avg_g_acc, avg_g_loss))
+              % (epoch + 1, avg_d_loss, avg_d_acc_r, avg_d_acc_f, avg_g_loss, avg_g_acc))
 
         # If at save interval => save generated image samples
         if epoch == 0 or (epoch + 1) % checkpoint_sample == 0:
