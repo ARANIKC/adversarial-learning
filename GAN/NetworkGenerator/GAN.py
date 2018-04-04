@@ -3,7 +3,7 @@
 
 from keras import Sequential
 from keras.layers import Conv2DTranspose, Dense, \
-    Reshape, Conv2D, MaxPool2D, Flatten
+    Reshape, Conv2D, MaxPool2D, Flatten, BatchNormalization
 from keras.optimizers import Adam
 from keras import Model
 
@@ -101,11 +101,15 @@ def _discriminator(inp_shape):
 
     # flatten the activations: inp 8 x 8 x 64 := 4096
     discriminator_model.add(Flatten())
+    discriminator_model.add(BatchNormalization())
 
     # add final few dense layers:
     discriminator_model.add(Dense(units=1024, activation='relu'))
+    discriminator_model.add(BatchNormalization())
     discriminator_model.add(Dense(units=256, activation='relu'))
+    discriminator_model.add(BatchNormalization())
     discriminator_model.add(Dense(units=32, activation='relu'))
+    discriminator_model.add(BatchNormalization())
     discriminator_model.add(Dense(units=1, activation='sigmoid'))
 
     # return the created model

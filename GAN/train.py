@@ -69,7 +69,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
             idx = np.random.randint(0, data.shape[0], half_batch)
             imgs = data[idx]
 
-            noise = np.random.normal(0, 1, (batch_size, noise_size))
+            noise = np.random.normal(0, 1, (half_batch, noise_size))
 
             # Generate a half batch of new images
             gen_imgs = generator.predict(noise)
@@ -77,7 +77,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
             # Train the discriminator
             discriminator.trainable = True
             d_loss_real = discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
-            d_loss_fake = discriminator.train_on_batch(gen_imgs, np.zeros((batch_size, 1)))
+            d_loss_fake = discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
             d_loss = 0.5 * np.add(d_loss_real[0], d_loss_fake[0])
             d_real_acc = d_loss_real[1]
             d_fake_acc = d_loss_fake[1]
