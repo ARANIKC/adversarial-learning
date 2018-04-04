@@ -128,7 +128,7 @@ def get_models(noise_size, dis_lr, comb_lr):
 
     # create the combined model:
     comb = Model(inputs=gen.inputs, outputs=dis(gen.outputs))
-    comb.compile(optimizer=Adam(comb_lr, 0.5), loss='binary_crossentropy')
+    comb.compile(optimizer=Adam(comb_lr, 0.5), loss='binary_crossentropy', metrics=['accuracy'])
 
     # return the three created models:
     return gen, dis, comb

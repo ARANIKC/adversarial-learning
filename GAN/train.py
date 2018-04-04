@@ -56,6 +56,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
     for epoch in range(epochs):
         d_losses = []
         g_losses = []
+        g_accs = []
         d_accs_r = []
         d_accs_f = []
         num_batches = int(np.ceil(epochs / batch_size))
@@ -99,17 +100,19 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
             # make sure that during the training of the combined model, the discriminator
             # is turned off. This way, only generator is trained
             discriminator.Trainable = False
-            g_loss = combined.train_on_batch(noise, valid_y)
+            g_loss, g_acc = combined.train_on_batch(noise, valid_y)
 
             g_losses.append(g_loss)
+            g_accs.append(g_acc)
 
         # Plot the progress
         avg_d_loss = np.mean(d_losses)
         avg_d_acc_r = 100 * np.mean(d_accs_r)
         avg_d_acc_f = 100 * np.mean(d_accs_f)
+        avg_g_acc = 100 * np.mean(g_accs)
         avg_g_loss = np.mean(g_losses)
-        print("%d [D_loss: %f, Real_acc.: %.2f%%, Fake_acc.: %.2f%%] [G_loss: %f]"
-              % (epoch + 1, avg_d_loss, avg_d_acc_r, avg_d_acc_f, avg_g_loss))
+        print("%d [D_loss: %f, Real_acc.: %.2f%%, Fake_acc.: %.2f%%] [G_loss: %f, G_acc.: %.2f%%]"
+              % (epoch + 1, avg_d_loss, avg_d_acc_r, avg_d_acc_f, avg_g_acc, avg_g_loss))
 
         # If at save interval => save generated image samples
         if epoch == 0 or (epoch + 1) % checkpoint_sample == 0:
