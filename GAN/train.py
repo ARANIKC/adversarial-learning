@@ -1,10 +1,12 @@
 """ Script for training the GAN on CIFAR-10 data
 """
 
+import keras
 import tensorflow as tf
 import numpy as np
 import NetworkGenerator.GAN as GAN
 import matplotlib.pyplot as plt
+import os
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -40,8 +42,11 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
     # samples during the training process
     def save_imgs(epch, rows=5, columns=5):
         r, c = rows, columns
-        rnd_noise = np.random.normal(0, 1, (r * c, noise_size))
+        rnd_noise = np.random.uniform(-1, 1, (r * c, noise_size))
         gen_samples = generator.predict(rnd_noise)
+
+        # restore the pixel-range
+        gen_samples = (gen_samples * 0.5) + 0.5
 
         fig, axs = plt.subplots(r, c)
         cnt = 0
@@ -59,25 +64,25 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
         g_accs = []
         d_accs_r = []
         d_accs_f = []
-        num_batches = int(np.ceil(epochs / batch_size))
-        for _ in range(num_batches):
+        num_batches = int(np.ceil(epochs / half_batch))
+        for ptr in range(num_batches):
             # ---------------------
             #  Train Discriminator
             # ---------------------
 
             # Select a random half batch of images
-            idx = np.random.randint(0, data.shape[0], half_batch)
-            imgs = data[idx]
+            imgs = data[half_batch * ptr: (half_batch * ptr) + half_batch]
+            num_imgs = len(imgs)
 
-            noise = np.random.normal(0, 1, (half_batch, noise_size))
+            noise = np.random.normal(0, 1, (num_imgs, noise_size))
 
             # Generate a half batch of new images
             gen_imgs = generator.predict(noise)
 
             # Train the discriminator
             discriminator.trainable = True
-            d_loss_real = discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
-            d_loss_fake = discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
+            d_loss_real = discriminator.train_on_batch(imgs, np.ones((num_imgs, 1)))
+            d_loss_fake = discriminator.train_on_batch(gen_imgs, np.zeros((num_imgs, 1)))
             d_loss = 0.5 * np.add(d_loss_real[0], d_loss_fake[0])
             d_real_acc = d_loss_real[1]
             d_fake_acc = d_loss_fake[1]
@@ -90,7 +95,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
             #  Train Generator
             # ---------------------
 
-            noise = np.random.normal(0, 1, (batch_size, noise_size))
+            noise = np.random.uniform(-1, 1, (batch_size, noise_size))
 
             # The generator wants the discriminator to label the generated samples
             # as valid (ones)
@@ -119,7 +124,7 @@ def train(models, data, epochs, batch_size=128, checkpoint_sample=1,
             save_imgs(epoch)
 
 
-def get_data():
+def get_data(highest_pixel_value=255):
     """
     obtain the cifar-10 dataset from the keras_datasets
     :return: data_x, data_y
@@ -129,6 +134,10 @@ def get_data():
     # combine all the data since this is a gan
     data_x = np.concatenate((train_x, test_x))
     data_y = np.concatenate((train_y, test_y))
+
+    # mean - normalize the data
+    mean = highest_pixel_value / 2
+    data_x = (data_x - mean) / mean
 
     # return the combined_data
     return data_x, data_y
@@ -147,9 +156,17 @@ def main(_):
     print("Input_Images:", x.shape)
 
     # obtain the network models
-    gen, dis, combined = GAN.get_models(FLAGS.input_noise_size,
-                                        FLAGS.discriminator_lr,
-                                        FLAGS.combined_lr)
+    if (os.path.isfile("Generator.dnn") and
+            os.path.isfile("Discriminator.dnn") and
+            os.path.isfile("Combined.dnn")):
+
+        gen, dis, combined = (keras.models.load_model("Generator.dnn"),
+                              keras.models.load_model("Discriminator.dnn"),
+                              keras.models.load_model("Combined.dnn"))
+    else:
+        gen, dis, combined = GAN.get_models(FLAGS.input_noise_size,
+                                            FLAGS.discriminator_lr,
+                                            FLAGS.combined_lr)
     print("Discriminator summary:")
     dis.summary()
 
@@ -175,9 +192,9 @@ if __name__ == '__main__':
     # define the optional flags for the app to run
     flags.DEFINE_integer("input_noise_size", 16,
                          "Number of dimensions of the input noise samples")
-    flags.DEFINE_float("discriminator_lr", 3e-3,
+    flags.DEFINE_float("discriminator_lr", 2e-4,
                        "Learning rate for training the Discriminator")
-    flags.DEFINE_float("combined_lr", 3e-3,
+    flags.DEFINE_float("combined_lr", 2e-4,
                        "Learning rate for training the Combined Model")
     flags.DEFINE_integer("epochs", 12,
                          "Number of epochs for training the GAN")
