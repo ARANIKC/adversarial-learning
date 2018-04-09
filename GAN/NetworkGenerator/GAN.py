@@ -120,6 +120,8 @@ def get_models(noise_size, dis_lr, comb_lr):
     """
     generate the GAN models
     :param noise_size: size of the input noise to the model
+    :param dis_lr: learning rate for the discriminator
+    :param comb_lr: learning rate for the combined model
     :return: Generator, Discriminator and Combined models
     """
     # obtain the generator model
@@ -129,6 +131,7 @@ def get_models(noise_size, dis_lr, comb_lr):
     # input shape is of Cifar-10 images: i.e. 32 x 32 x 3
     dis = _discriminator(inp_shape=(32, 32, 3))
     dis.compile(optimizer=Adam(dis_lr, 0.5), loss='binary_crossentropy', metrics=['accuracy'])
+    dis.trainable = False
 
     # create the combined model:
     comb = Model(inputs=gen.inputs, outputs=dis(gen.outputs))
@@ -141,9 +144,15 @@ def get_models(noise_size, dis_lr, comb_lr):
 # print the shape information of the three models
 if __name__ == '__main__':
     inp = 16
-    generator, discriminator, combined = get_models(inp)
+    generator, discriminator, combined = get_models(inp, 3e-3, 3e-3)
 
     # print the description about the three models
     print("Generator:", generator.inputs, "->", generator.outputs)
     print("Discriminator:", discriminator.inputs, "->", discriminator.outputs)
     print("Combined:", combined.inputs, "->", discriminator.outputs)
+
+    # show the discriminator summary
+    discriminator.summary()
+
+    # also show the combined summary
+    combined.summary()
