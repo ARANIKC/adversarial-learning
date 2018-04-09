@@ -1,0 +1,19 @@
+1.) Study and Implement the StackGAN, StackGAN++ architecture 
+	use cases:
+	-> Criminal identification (text2Face)
+	-> Casting help (text2Face)
+
+* Improving the architecture's results with the following modifications:
+	i.) Wasserstein's AE
+	ii.) Progressive growing
+	iii.) Deep - Complex Networks (very experimental)
+
+
+2.) Study and Implement the SeqGAN and LeakGAN architectures
+	use cases:
+	-> integration with the earlier structured data to summary generation
+
+
+3.) Study and implement the Spherical CNNs 
+	use cases:
+	i.) Classification and detection for spherical images helpful for VR team
